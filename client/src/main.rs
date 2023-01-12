@@ -1,39 +1,50 @@
-use shared::PROTOCOL_ID;
-use std::{net::UdpSocket, time::SystemTime};
-
-use bevy::prelude::*;
+use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_renet::*;
+
+mod main_menu;
+
+use main_menu::MainMenuPlugin;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameState {
+    MainMenu,
+    Connecting,
+    Game,
+}
+
+#[derive(Resource)]
+pub struct GameAssets {
+    font: Handle<Font>,
+}
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
-                title: "Test".to_owned(),
+                title: "Cool Survival Game".to_owned(),
                 ..Default::default()
             },
             ..Default::default()
         }))
+        // 3rd Party Plugins
         .add_plugin(RenetClientPlugin::default())
-        .insert_resource(create_renet_config())
+        // Custom Plugins
+        .add_plugin(MainMenuPlugin)
+        .add_state(GameState::MainMenu)
+        .add_startup_system_to_stage(StartupStage::PreStartup, setup)
         .run();
 }
 
-fn create_renet_config() -> renet::RenetClient {
-    let current_time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(Camera2dBundle {
+        camera_2d: Camera2d {
+            clear_color: ClearColorConfig::Custom(Color::DARK_GREEN),
+        },
+        ..Default::default()
+    });
 
-    let server_addr = "127.0.0.1:5678".parse().unwrap();
-    let socket = UdpSocket::bind(server_addr).unwrap();
-
-    let config = renet::RenetConnectionConfig::default();
-
-    let authentication = renet::ClientAuthentication::Unsecure {
-        protocol_id: PROTOCOL_ID,
-        client_id: current_time.as_millis() as u64,
-        server_addr,
-        user_data: None,
+    let game_assets = GameAssets {
+        font: asset_server.load("fonts/HackNerdFont.ttf"),
     };
-
-    renet::RenetClient::new(current_time, socket, config, authentication).unwrap()
+    commands.insert_resource(game_assets);
 }
