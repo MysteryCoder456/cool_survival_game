@@ -6,6 +6,13 @@ use bevy_renet::*;
 use crate::{GameAssets, GameState};
 use shared::PROTOCOL_ID;
 
+const BUTTON_MARGIN: UiRect = UiRect {
+    top: Val::Px(10.0),
+    bottom: Val::Px(10.0),
+    left: Val::Px(10.0),
+    right: Val::Px(10.0),
+};
+
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
@@ -40,6 +47,7 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
             style: Style {
                 align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
+                justify_content: JustifyContent::Center,
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
                 padding: UiRect::all(Val::Percent(1.)),
                 flex_direction: FlexDirection::Column,
@@ -56,5 +64,62 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
                     font: game_assets.font.clone(),
                 },
             ));
+
+            node.spawn(NodeBundle {
+                style: Style {
+                    margin: UiRect {
+                        top: Val::Percent(20.0),
+                        bottom: Val::Percent(20.0),
+                        ..Default::default()
+                    },
+                    align_items: AlignItems::Center,
+                    flex_direction: FlexDirection::Column,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .with_children(|center_node| {
+                center_node
+                    .spawn(ButtonBundle {
+                        background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
+                        style: Style {
+                            padding: BUTTON_MARGIN,
+                            margin: BUTTON_MARGIN,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    })
+                    .with_children(|button| {
+                        button.spawn(TextBundle::from_section(
+                            "Connect to Localhost",
+                            TextStyle {
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                                font: game_assets.font.clone(),
+                            },
+                        ));
+                    });
+
+                center_node
+                    .spawn(ButtonBundle {
+                        background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
+                        style: Style {
+                            padding: BUTTON_MARGIN,
+                            margin: BUTTON_MARGIN,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    })
+                    .with_children(|button| {
+                        button.spawn(TextBundle::from_section(
+                            "Quit",
+                            TextStyle {
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                                font: game_assets.font.clone(),
+                            },
+                        ));
+                    });
+            });
         });
 }
