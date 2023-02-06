@@ -1,6 +1,6 @@
 use std::{net::UdpSocket, time::SystemTime};
 
-use bevy::prelude::*;
+use bevy::{app::AppExit, prelude::*};
 use bevy_renet::*;
 
 use crate::{GameAssets, GameState};
@@ -13,11 +13,18 @@ const BUTTON_MARGIN: UiRect = UiRect {
     right: Val::Px(10.0),
 };
 
+#[derive(Component)]
+enum Button {
+    Connect,
+    Quit,
+}
+
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu));
+        app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
+            .add_system_set(SystemSet::on_update(GameState::MainMenu).with_system(handle_buttons));
     }
 }
 
@@ -80,15 +87,18 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
             })
             .with_children(|center_node| {
                 center_node
-                    .spawn(ButtonBundle {
-                        background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
-                        style: Style {
-                            padding: BUTTON_MARGIN,
-                            margin: BUTTON_MARGIN,
+                    .spawn((
+                        ButtonBundle {
+                            background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
+                            style: Style {
+                                padding: BUTTON_MARGIN,
+                                margin: BUTTON_MARGIN,
+                                ..Default::default()
+                            },
                             ..Default::default()
                         },
-                        ..Default::default()
-                    })
+                        Button::Connect,
+                    ))
                     .with_children(|button| {
                         button.spawn(TextBundle::from_section(
                             "Connect to Localhost",
@@ -101,15 +111,18 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
                     });
 
                 center_node
-                    .spawn(ButtonBundle {
-                        background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
-                        style: Style {
-                            padding: BUTTON_MARGIN,
-                            margin: BUTTON_MARGIN,
+                    .spawn((
+                        ButtonBundle {
+                            background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
+                            style: Style {
+                                padding: BUTTON_MARGIN,
+                                margin: BUTTON_MARGIN,
+                                ..Default::default()
+                            },
                             ..Default::default()
                         },
-                        ..Default::default()
-                    })
+                        Button::Quit,
+                    ))
                     .with_children(|button| {
                         button.spawn(TextBundle::from_section(
                             "Quit",
@@ -122,4 +135,21 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
                     });
             });
         });
+}
+
+fn handle_buttons(
+    query: Query<(&Button, &Interaction), Changed<Interaction>>,
+    mut exit: EventWriter<AppExit>,
+) {
+    for (btn, interaction) in query.iter() {
+        if *interaction != Interaction::Clicked {
+            continue;
+        }
+
+        match *btn {
+            // TODO
+            Button::Connect => unimplemented!(),
+            Button::Quit => exit.send_default(),
+        }
+    }
 }
