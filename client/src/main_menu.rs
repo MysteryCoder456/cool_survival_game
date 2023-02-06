@@ -37,6 +37,7 @@ fn create_renet_client() -> renet::RenetClient {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
 
+    // TODO: Implement entering a custom server address
     let server_addr = "127.0.0.1:5678".parse().unwrap();
     let socket = UdpSocket::bind(server_addr).unwrap();
 
