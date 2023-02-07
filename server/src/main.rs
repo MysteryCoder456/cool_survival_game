@@ -1,3 +1,9 @@
+use bevy::prelude::*;
+use bevy_renet::*;
+
 fn main() {
-    println!("Hello, world!");
+    App::new()
+        .add_plugins(MinimalPlugins)
+        .add_plugin(RenetServerPlugin::default())
+        .run();
 }
