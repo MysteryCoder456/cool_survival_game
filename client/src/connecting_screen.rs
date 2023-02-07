@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_renet::*;
 
 use crate::{GameAssets, GameState};
 
@@ -31,7 +32,9 @@ impl Plugin for ConnectingScreenPlugin {
             SystemSet::on_exit(GameState::Connecting).with_system(destroy_connecting_screen),
         )
         .add_system_set(
-            SystemSet::on_update(GameState::Connecting).with_system(dot_animation_system),
+            SystemSet::on_update(GameState::Connecting)
+                .with_system(dot_animation_system)
+                .with_system(handle_client_connection_state),
         );
     }
 }
@@ -55,7 +58,7 @@ fn setup_connecting_screen(mut commands: Commands, game_assets: Res<GameAssets>)
         .with_children(|node| {
             node.spawn((
                 TextBundle::from_section(
-                    "Connecting".to_owned(),
+                    "Connecting...".to_owned(),
                     TextStyle {
                         font_size: 40.0,
                         color: Color::WHITE,
@@ -87,4 +90,13 @@ fn dot_animation_system(time: Res<Time>, mut query: Query<(&mut DotAnimator, &mu
             animator.dots += 1;
         }
     }
+}
+
+fn handle_client_connection_state(
+    mut game_state: ResMut<State<GameState>>,
+    client: Res<renet::RenetClient>,
+) {
+    if client.is_changed() && client.is_connected() {
+        let _ = game_state.set(GameState::Game);
+    };
 }

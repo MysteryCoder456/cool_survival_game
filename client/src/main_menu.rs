@@ -1,4 +1,7 @@
-use std::{net::UdpSocket, time::SystemTime};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    time::SystemTime,
+};
 
 use bevy::{app::AppExit, prelude::*};
 use bevy_renet::*;
@@ -38,8 +41,8 @@ fn create_renet_client() -> renet::RenetClient {
         .unwrap();
 
     // TODO: Implement entering a custom server address
-    let server_addr = "127.0.0.1:5678".parse().unwrap();
-    let socket = UdpSocket::bind(server_addr).unwrap();
+    let server_addr: SocketAddr = "127.0.0.1:5678".parse().unwrap();
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
 
     let config = renet::RenetConnectionConfig::default();
 

@@ -1,6 +1,5 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_renet::*;
-use iyes_loopless::prelude::*;
 
 mod connecting_screen;
 mod main_menu;
@@ -36,7 +35,6 @@ fn main() {
         .add_plugin(ConnectingScreenPlugin)
         .add_state(GameState::MainMenu)
         .add_startup_system_to_stage(StartupStage::PreStartup, setup)
-        .add_system(handle_client_connection_state.run_if_resource_exists::<renet::RenetClient>())
         .run();
 }
 
@@ -52,23 +50,4 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         font: asset_server.load("fonts/HackNerdFont.ttf"),
     };
     commands.insert_resource(game_assets);
-}
-
-fn handle_client_connection_state(
-    mut commands: Commands,
-    mut game_state: ResMut<State<GameState>>,
-    client: Res<renet::RenetClient>,
-) {
-    if !client.is_changed() || client.is_added() {
-        return;
-    }
-
-    let new_state = if client.is_connected() {
-        GameState::Game
-    } else {
-        commands.remove_resource::<renet::RenetClient>();
-        GameState::MainMenu
-    };
-
-    let _ = game_state.set(new_state);
 }
