@@ -6,7 +6,7 @@ use std::{
 use bevy::prelude::*;
 use bevy_renet::{renet::ServerEvent, *};
 
-use shared::PROTOCOL_ID;
+use shared::*;
 
 const MAX_PLAYERS: usize = 10;
 
@@ -15,7 +15,10 @@ fn main() {
         .add_plugins(MinimalPlugins)
         .add_plugin(RenetServerPlugin::default())
         .insert_resource(create_renet_server())
-        .add_system(handle_client_messages)
+        .add_event::<ServerMessage>()
+        .add_event::<(u64, ClientMessage)>()
+        .add_system(handle_incoming_messages)
+        .add_system(handle_outgoing_messages)
         .add_system(handle_server_events)
         .run();
 }
@@ -39,22 +42,60 @@ fn create_renet_server() -> renet::RenetServer {
     renet::RenetServer::new(current_time, server_config, connection_config, socket).unwrap()
 }
 
-fn handle_client_messages(mut server: ResMut<renet::RenetServer>) {
+fn handle_incoming_messages(
+    mut server: ResMut<renet::RenetServer>,
+    mut events: EventWriter<(u64, ClientMessage)>,
+) {
     let channel_id = 0;
 
     for client_id in server.clients_id() {
-        while let Some(msg) = server.receive_message(client_id, channel_id) {
-            let msg_str = msg.iter().map(|c| char::from(*c)).collect::<String>();
-            println!("{} sent a message: {}", client_id, msg_str);
+        while let Some(serialized_msg) = server.receive_message(client_id, channel_id) {
+            match bincode::deserialize(&serialized_msg) {
+                Ok(client_msg) => events.send((client_id, client_msg)),
+                Err(error) => eprintln!(
+                    "An error occured while deserializing client message:\n{}",
+                    error
+                ),
+            }
         }
     }
 }
 
-fn handle_server_events(mut events: EventReader<ServerEvent>) {
-    for event in events.iter() {
+fn handle_outgoing_messages(
+    mut server: ResMut<renet::RenetServer>,
+    mut events: EventReader<ServerMessage>,
+) {
+    let channel_id = 0;
+
+    for server_msg in events.iter() {
+        match bincode::serialize(server_msg) {
+            Ok(serialized_msg) => server.broadcast_message(channel_id, serialized_msg),
+            Err(error) => eprintln!(
+                "An error occured while serializing {:?}:\n{}",
+                server_msg, error
+            ),
+        }
+    }
+}
+
+fn handle_server_events(
+    mut server_events: EventReader<ServerEvent>,
+    mut server_msg_events: EventWriter<ServerMessage>,
+) {
+    for event in server_events.iter() {
         match event {
-            ServerEvent::ClientConnected(id, _) => println!("{} has joined the game", id),
-            ServerEvent::ClientDisconnected(id) => println!("{} has left the game", id),
+            ServerEvent::ClientConnected(new_id, _) => {
+                println!("{} has joined the game", new_id);
+
+                server_msg_events.send(ServerMessage::PlayerJoined {
+                    id: *new_id,
+                    username: format!("John Doe {}", new_id), // TODO: Fetch username
+                });
+            }
+            ServerEvent::ClientDisconnected(id) => {
+                println!("{} has left the game", id);
+                server_msg_events.send(ServerMessage::PlayerLeft { id: *id })
+            }
         }
     }
 }
