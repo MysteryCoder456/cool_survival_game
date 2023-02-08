@@ -6,7 +6,7 @@ pub const PROTOCOL_ID: u64 = 1;
 pub enum ServerMessage {
     PlayerJoined { id: u64, username: String },
     PlayerLeft { id: u64 },
-    ServerMessage(String),
+    ChatMessage { author: u64, content: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]

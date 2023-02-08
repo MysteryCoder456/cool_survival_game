@@ -2,9 +2,11 @@ use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 use bevy_renet::*;
 
 mod connecting_screen;
+mod main_game;
 mod main_menu;
 
 use connecting_screen::ConnectingScreenPlugin;
+use main_game::MainGamePlugin;
 use main_menu::MainMenuPlugin;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -31,6 +33,7 @@ fn main() {
         // 3rd Party Plugins
         .add_plugin(RenetClientPlugin::default())
         // 1st Party Plugins
+        .add_plugin(MainGamePlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(ConnectingScreenPlugin)
         .add_state(GameState::MainMenu)
