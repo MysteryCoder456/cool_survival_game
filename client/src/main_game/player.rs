@@ -2,6 +2,8 @@ use bevy::prelude::*;
 
 use crate::GameState;
 
+const PLAYER_SPEED: f32 = 500.0;
+
 #[derive(Component)]
 struct Player;
 
@@ -15,7 +17,10 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_player)
-            .add_system_set(SystemSet::on_enter(GameState::Game).with_system(spawn_player_system));
+            .add_system_set(SystemSet::on_enter(GameState::Game).with_system(spawn_player_system))
+            .add_system_set(
+                SystemSet::on_update(GameState::Game).with_system(player_movement_system),
+            );
     }
 }
 
@@ -41,4 +46,27 @@ fn spawn_player_system(mut commands: Commands, player_assets: Res<PlayerAssets>)
         },
         Player,
     ));
+}
+
+fn player_movement_system(
+    time: Res<Time>,
+    kb: Res<Input<KeyCode>>,
+    mut query: Query<&mut Transform, With<Player>>,
+) {
+    if query.is_empty() {
+        return;
+    }
+    let mut transform = query.single_mut();
+
+    // Calculate the direction in which the player will move
+    let direction = Vec2 {
+        x: (kb.pressed(KeyCode::D) as i32 - kb.pressed(KeyCode::A) as i32) as f32,
+        y: (kb.pressed(KeyCode::W) as i32 - kb.pressed(KeyCode::S) as i32) as f32,
+    }
+    .normalize_or_zero();
+    let displacement = direction.extend(0.0) * PLAYER_SPEED * time.delta_seconds();
+
+    let translation = &mut transform.translation;
+    translation.x += displacement.x;
+    translation.y += displacement.y;
 }
