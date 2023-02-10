@@ -66,6 +66,7 @@ fn player_movement_system(
     .normalize_or_zero();
     let displacement = direction.extend(0.0) * PLAYER_SPEED * time.delta_seconds();
 
+    // Translate the player
     let translation = &mut transform.translation;
     translation.x += displacement.x;
     translation.y += displacement.y;
