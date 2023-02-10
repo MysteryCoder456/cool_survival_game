@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_renet::*;
 
-use crate::{GameAssets, GameState};
+use crate::{UIAssets, GameState};
 
 #[derive(Component)]
 struct ConnectingScreen;
@@ -39,7 +39,7 @@ impl Plugin for ConnectingScreenPlugin {
     }
 }
 
-fn setup_connecting_screen(mut commands: Commands, game_assets: Res<GameAssets>) {
+fn setup_connecting_screen(mut commands: Commands, game_assets: Res<UIAssets>) {
     commands
         .spawn((
             NodeBundle {

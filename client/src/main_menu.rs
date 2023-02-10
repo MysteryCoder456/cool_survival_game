@@ -6,7 +6,7 @@ use std::{
 use bevy::{app::AppExit, prelude::*};
 use bevy_renet::*;
 
-use crate::{GameAssets, GameState};
+use crate::{GameState, UIAssets};
 use shared::PROTOCOL_ID;
 
 const BUTTON_MARGIN: UiRect = UiRect {
@@ -56,7 +56,7 @@ fn create_renet_client() -> renet::RenetClient {
     renet::RenetClient::new(current_time, socket, config, authentication).unwrap()
 }
 
-fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
+fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
     commands
         .spawn((
             NodeBundle {
@@ -79,7 +79,7 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
                 TextStyle {
                     font_size: 40.0,
                     color: Color::WHITE,
-                    font: game_assets.font.clone(),
+                    font: ui_assets.font.clone(),
                 },
             ));
 
@@ -116,7 +116,7 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
                             TextStyle {
                                 font_size: 20.0,
                                 color: Color::WHITE,
-                                font: game_assets.font.clone(),
+                                font: ui_assets.font.clone(),
                             },
                         ));
                     });
@@ -140,7 +140,7 @@ fn setup_main_menu(mut commands: Commands, game_assets: Res<GameAssets>) {
                             TextStyle {
                                 font_size: 20.0,
                                 color: Color::WHITE,
-                                font: game_assets.font.clone(),
+                                font: ui_assets.font.clone(),
                             },
                         ));
                     });

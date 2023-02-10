@@ -17,7 +17,7 @@ pub enum GameState {
 }
 
 #[derive(Resource)]
-pub struct GameAssets {
+pub struct UIAssets {
     font: Handle<Font>,
 }
 
@@ -49,8 +49,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     });
 
-    let game_assets = GameAssets {
+    let ui_assets = UIAssets {
         font: asset_server.load("fonts/HackNerdFont.ttf"),
     };
-    commands.insert_resource(game_assets);
+    commands.insert_resource(ui_assets);
 }

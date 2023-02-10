@@ -1,0 +1,44 @@
+use bevy::prelude::*;
+
+use crate::GameState;
+
+#[derive(Component)]
+struct Player;
+
+#[derive(Resource)]
+struct PlayerAssets {
+    idle: Handle<TextureAtlas>,
+}
+
+pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_startup_system(setup_player)
+            .add_system_set(SystemSet::on_enter(GameState::Game).with_system(spawn_player_system));
+    }
+}
+
+fn setup_player(
+    mut commands: Commands,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    asset_server: Res<AssetServer>,
+) {
+    let idle_texture: Handle<Image> = asset_server.load("textures/player/idle.png");
+    let idle_atlas = TextureAtlas::from_grid(idle_texture, Vec2::new(64.0, 64.0), 1, 1, None, None);
+    let idle = texture_atlases.add(idle_atlas);
+
+    let player_assets = PlayerAssets { idle };
+
+    commands.insert_resource(player_assets);
+}
+
+fn spawn_player_system(mut commands: Commands, player_assets: Res<PlayerAssets>) {
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: player_assets.idle.clone(),
+            ..Default::default()
+        },
+        Player,
+    ));
+}
