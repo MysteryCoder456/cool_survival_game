@@ -4,26 +4,28 @@ use bevy_renet::*;
 use shared::*;
 
 mod player;
+mod slave_player;
 
 use crate::GameState;
 use player::PlayerPlugin;
+use slave_player::{events::*, SlavePlayerPlugin};
 
 pub struct MainGamePlugin;
 
 impl Plugin for MainGamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(PlayerPlugin)
+            .add_plugin(SlavePlayerPlugin)
             .add_event::<ServerMessage>()
             .add_event::<ClientMessage>()
             .add_system_set(
                 SystemSet::on_update(GameState::Game)
                     .with_system(handle_incoming_messages)
-                    .with_system(handle_outgoing_messages),
+                    .with_system(handle_outgoing_messages)
+                    .with_system(handle_new_players),
             );
     }
 }
-
-// TODO: Build game world
 
 fn handle_incoming_messages(
     mut client: ResMut<renet::RenetClient>,
@@ -55,6 +57,23 @@ fn handle_outgoing_messages(
                 "An error occured while serializing {:?}:\n{}",
                 client_msg, error
             ),
+        }
+    }
+}
+
+fn handle_new_players(
+    mut server_msg_events: EventReader<ServerMessage>,
+    mut spawn_slave_events: EventWriter<SpawnSlavePlayer>,
+    client: Res<renet::RenetClient>,
+) {
+    for server_msg in server_msg_events.iter() {
+        if let ServerMessage::PlayerJoined { id, username: _ } = server_msg {
+            if *id != client.client_id() {
+                spawn_slave_events.send(SpawnSlavePlayer {
+                    id: *id,
+                    position: Vec2::ZERO, // TODO: Fetch position from server
+                });
+            }
         }
     }
 }
