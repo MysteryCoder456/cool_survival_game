@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 
+use shared::*;
+
+use super::{PlayerInfo, Players};
 use crate::GameState;
 
 const PLAYER_SPEED: f32 = 500.0;
@@ -38,20 +41,36 @@ fn setup_player(
     commands.insert_resource(player_assets);
 }
 
-fn spawn_player_system(mut commands: Commands, player_assets: Res<PlayerAssets>) {
-    commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: player_assets.idle.clone(),
-            ..Default::default()
+fn spawn_player_system(
+    mut commands: Commands,
+    mut players: ResMut<Players>,
+    client: Res<bevy_renet::renet::RenetClient>,
+    player_assets: Res<PlayerAssets>,
+) {
+    let entity = commands
+        .spawn((
+            SpriteSheetBundle {
+                texture_atlas: player_assets.idle.clone(),
+                ..Default::default()
+            },
+            Player,
+        ))
+        .id();
+
+    players.0.insert(
+        client.client_id(),
+        PlayerInfo {
+            entity,
+            username: "".to_owned(), // TODO: this should be the username of the current player
         },
-        Player,
-    ));
+    );
 }
 
 fn player_movement_system(
     time: Res<Time>,
     kb: Res<Input<KeyCode>>,
     mut query: Query<&mut Transform, With<Player>>,
+    mut events: EventWriter<ClientMessage>,
 ) {
     if query.is_empty() {
         return;
@@ -70,4 +89,13 @@ fn player_movement_system(
     let translation = &mut transform.translation;
     translation.x += displacement.x;
     translation.y += displacement.y;
+
+    // Send transform update to server
+    if direction != Vec2::ZERO {
+        events.send(ClientMessage::PlayerTransformUpdate {
+            x: translation.x,
+            y: translation.y,
+            rotation: transform.rotation.z,
+        });
+    }
 }

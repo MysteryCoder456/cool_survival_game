@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 
+use shared::*;
+
+use super::{PlayerInfo, Players};
 use crate::GameState;
 
 pub mod events {
@@ -7,6 +10,7 @@ pub mod events {
 
     pub struct SpawnSlavePlayer {
         pub id: u64,
+        pub username: String,
         pub position: Vec2,
     }
 }
@@ -26,7 +30,9 @@ impl Plugin for SlavePlayerPlugin {
         app.add_event::<events::SpawnSlavePlayer>()
             .add_startup_system(setup_slave_player)
             .add_system_set(
-                SystemSet::on_update(GameState::Game).with_system(spawn_slave_player_system),
+                SystemSet::on_update(GameState::Game)
+                    .with_system(spawn_slave_player_system)
+                    .with_system(transform_slave_player_system),
             );
     }
 }
@@ -48,15 +54,47 @@ fn setup_slave_player(
 fn spawn_slave_player_system(
     mut commands: Commands,
     mut events: EventReader<events::SpawnSlavePlayer>,
+    mut players: ResMut<Players>,
     slave_player_assets: Res<SlavePlayerAssets>,
 ) {
     for event in events.iter() {
-        commands.spawn((
-            SpriteSheetBundle {
-                texture_atlas: slave_player_assets.idle.clone(),
-                ..Default::default()
+        let entity = commands
+            .spawn((
+                SpriteSheetBundle {
+                    texture_atlas: slave_player_assets.idle.clone(),
+                    transform: Transform {
+                        translation: event.position.extend(0.0),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                SlavePlayer(event.id),
+            ))
+            .id();
+
+        players.0.insert(
+            event.id,
+            PlayerInfo {
+                entity,
+                username: event.username.clone(),
             },
-            SlavePlayer(event.id),
-        ));
+        );
+    }
+}
+
+fn transform_slave_player_system(
+    mut events: EventReader<ServerMessage>,
+    mut query: Query<&mut Transform, With<SlavePlayer>>,
+    players: Res<Players>,
+) {
+    for server_msg in events.iter() {
+        if let ServerMessage::PlayerTransformUpdate { id, x, y, rotation } = server_msg {
+            if let Some(info) = players.0.get(id) {
+                let mut transform = query.get_mut(info.entity).unwrap();
+
+                transform.translation = Vec3::new(*x, *y, 0.0);
+                transform.rotation.z = *rotation;
+            }
+        }
     }
 }

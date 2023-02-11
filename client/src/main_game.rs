@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use bevy_renet::*;
 
@@ -10,6 +12,14 @@ use crate::GameState;
 use player::PlayerPlugin;
 use slave_player::{events::*, SlavePlayerPlugin};
 
+struct PlayerInfo {
+    entity: Entity,
+    username: String,
+}
+
+#[derive(Resource, Default)]
+struct Players(HashMap<u64, PlayerInfo>);
+
 pub struct MainGamePlugin;
 
 impl Plugin for MainGamePlugin {
@@ -18,6 +28,7 @@ impl Plugin for MainGamePlugin {
             .add_plugin(SlavePlayerPlugin)
             .add_event::<ServerMessage>()
             .add_event::<ClientMessage>()
+            .insert_resource(Players::default())
             .add_system_set(
                 SystemSet::on_update(GameState::Game)
                     .with_system(handle_incoming_messages)
@@ -64,16 +75,14 @@ fn handle_outgoing_messages(
 fn handle_new_players(
     mut server_msg_events: EventReader<ServerMessage>,
     mut spawn_slave_events: EventWriter<SpawnSlavePlayer>,
-    client: Res<renet::RenetClient>,
 ) {
     for server_msg in server_msg_events.iter() {
-        if let ServerMessage::PlayerJoined { id, username: _ } = server_msg {
-            if *id != client.client_id() {
-                spawn_slave_events.send(SpawnSlavePlayer {
-                    id: *id,
-                    position: Vec2::ZERO, // TODO: Fetch position from server
-                });
-            }
+        if let ServerMessage::PlayerJoined { id, username } = server_msg {
+            spawn_slave_events.send(SpawnSlavePlayer {
+                id: *id,
+                username: username.clone(),
+                position: Vec2::ZERO, // TODO: Fetch position from server
+            });
         }
     }
 }

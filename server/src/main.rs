@@ -11,6 +11,11 @@ use shared::*;
 
 const MAX_PLAYERS: usize = 10;
 
+struct Broadcast {
+    message: ServerMessage,
+    except: Option<u64>,
+}
+
 struct PlayerInfo {
     username: String,
 }
@@ -24,13 +29,14 @@ fn main() {
         .add_plugin(RenetServerPlugin::default())
         .insert_resource(create_renet_server())
         .insert_resource(Players::default())
-        .add_event::<ServerMessage>()
+        .add_event::<Broadcast>()
         .add_event::<(u64, ServerMessage)>()
         .add_event::<(u64, ClientMessage)>()
         .add_system(handle_incoming_messages)
         .add_system(handle_outgoing_broadcasts)
         .add_system(handle_outgoing_messages)
         .add_system(handle_server_events)
+        .add_system(player_transform_update_system)
         .run();
 }
 
@@ -75,16 +81,22 @@ fn handle_incoming_messages(
 /// Handle server messages which have to be sent to all clients
 fn handle_outgoing_broadcasts(
     mut server: ResMut<renet::RenetServer>,
-    mut events: EventReader<ServerMessage>,
+    mut events: EventReader<Broadcast>,
 ) {
     let channel_id = 0;
 
-    for server_msg in events.iter() {
-        match bincode::serialize(server_msg) {
-            Ok(serialized_msg) => server.broadcast_message(channel_id, serialized_msg),
+    for Broadcast { message, except } in events.iter() {
+        match bincode::serialize(message) {
+            Ok(serialized_msg) => {
+                if let Some(except) = except {
+                    server.broadcast_message_except(*except, channel_id, serialized_msg);
+                } else {
+                    server.broadcast_message(channel_id, serialized_msg);
+                }
+            }
             Err(error) => eprintln!(
                 "An error occured while serializing {:?}:\n{}",
-                server_msg, error
+                message, error
             ),
         }
     }
@@ -110,7 +122,7 @@ fn handle_outgoing_messages(
 
 fn handle_server_events(
     mut server_events: EventReader<ServerEvent>,
-    mut server_broadcast_events: EventWriter<ServerMessage>,
+    mut server_broadcast_events: EventWriter<Broadcast>,
     mut server_msg_events: EventWriter<(u64, ServerMessage)>,
     mut players: ResMut<Players>,
 ) {
@@ -120,11 +132,14 @@ fn handle_server_events(
                 println!("{} has joined the game", new_id);
                 let username = format!("John Doe {}", new_id); // TODO: Fetch username from client
 
-                // Inform other players about new player
-                server_broadcast_events.send(ServerMessage::PlayerJoined {
-                    id: *new_id,
-                    username: username.clone(),
-                    // TODO: Add spawn position
+                // Inform existing players about new player
+                server_broadcast_events.send(Broadcast {
+                    message: ServerMessage::PlayerJoined {
+                        id: *new_id,
+                        username: username.clone(),
+                        // TODO: Add spawn position
+                    },
+                    except: Some(*new_id),
                 });
 
                 // Inform new player about existing players
@@ -148,9 +163,32 @@ fn handle_server_events(
             }
             ServerEvent::ClientDisconnected(id) => {
                 println!("{} has left the game", id);
-                server_broadcast_events.send(ServerMessage::PlayerLeft { id: *id });
+
+                server_broadcast_events.send(Broadcast {
+                    message: ServerMessage::PlayerLeft { id: *id },
+                    except: None,
+                });
                 players.0.remove(id);
             }
+        }
+    }
+}
+
+fn player_transform_update_system(
+    mut client_msg_events: EventReader<(u64, ClientMessage)>,
+    mut server_broadcast_events: EventWriter<Broadcast>,
+) {
+    for client_msg in client_msg_events.iter() {
+        if let (id, ClientMessage::PlayerTransformUpdate { x, y, rotation }) = client_msg {
+            server_broadcast_events.send(Broadcast {
+                message: ServerMessage::PlayerTransformUpdate {
+                    id: *id,
+                    x: *x,
+                    y: *y,
+                    rotation: *rotation,
+                },
+                except: Some(*id),
+            });
         }
     }
 }
