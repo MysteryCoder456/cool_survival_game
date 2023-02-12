@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_2;
+
 use bevy::prelude::*;
 
 use shared::*;
@@ -93,7 +95,7 @@ fn transform_slave_player_system(
                 let mut transform = query.get_mut(info.entity).unwrap();
 
                 transform.translation = Vec3::new(*x, *y, 0.0);
-                transform.rotation.z = *rotation;
+                transform.rotation = Quat::from_rotation_z(*rotation - FRAC_PI_2);
             }
         }
     }

@@ -1,8 +1,10 @@
-use bevy::prelude::*;
+use std::f32::consts::FRAC_PI_2;
+
+use bevy::{prelude::*, time::FixedTimestep};
 
 use shared::*;
 
-use super::{PlayerInfo, Players};
+use super::{CursorWorldPosition, PlayerInfo, Players, PHYSICS_TIMESTEP};
 use crate::GameState;
 
 const PLAYER_SPEED: f32 = 500.0;
@@ -22,7 +24,10 @@ impl Plugin for PlayerPlugin {
         app.add_startup_system(setup_player)
             .add_system_set(SystemSet::on_enter(GameState::Game).with_system(spawn_player_system))
             .add_system_set(
-                SystemSet::on_update(GameState::Game).with_system(player_movement_system),
+                SystemSet::new()
+                    .with_run_criteria(FixedTimestep::step(PHYSICS_TIMESTEP))
+                    .with_run_criteria(State::on_update(GameState::Game))
+                    .with_system(player_movement_system),
             );
     }
 }
@@ -69,6 +74,7 @@ fn spawn_player_system(
 fn player_movement_system(
     time: Res<Time>,
     kb: Res<Input<KeyCode>>,
+    cursor_pos: Res<CursorWorldPosition>,
     mut query: Query<&mut Transform, With<Player>>,
     mut events: EventWriter<ClientMessage>,
 ) {
@@ -76,6 +82,7 @@ fn player_movement_system(
         return;
     }
     let mut transform = query.single_mut();
+    let old_transform = transform.clone();
 
     // Calculate the direction in which the player will move
     let direction = Vec2 {
@@ -86,16 +93,20 @@ fn player_movement_system(
     let displacement = direction.extend(0.0) * PLAYER_SPEED * time.delta_seconds();
 
     // Translate the player
-    let translation = &mut transform.translation;
-    translation.x += displacement.x;
-    translation.y += displacement.y;
+    transform.translation.x += displacement.x;
+    transform.translation.y += displacement.y;
 
-    // Send transform update to server
-    if direction != Vec2::ZERO {
+    // Rotate the player
+    let diff = cursor_pos.0 - transform.translation.truncate();
+    let angle = diff.y.atan2(diff.x);
+    transform.rotation = Quat::from_rotation_z(angle - FRAC_PI_2);
+
+    // Send transform update to server if transform has changed
+    if *transform != old_transform {
         events.send(ClientMessage::PlayerTransformUpdate {
-            x: translation.x,
-            y: translation.y,
-            rotation: transform.rotation.z,
+            x: transform.translation.x,
+            y: transform.translation.y,
+            rotation: angle,
         });
     }
 }

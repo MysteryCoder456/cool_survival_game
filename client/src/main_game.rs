@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::RenderTarget};
 use bevy_renet::*;
 
 use shared::*;
@@ -12,6 +12,8 @@ use crate::GameState;
 use player::PlayerPlugin;
 use slave_player::{events::*, SlavePlayerPlugin};
 
+pub const PHYSICS_TIMESTEP: f64 = 1.0 / 60.0; // 60 FPS
+
 struct PlayerInfo {
     entity: Entity,
     username: String,
@@ -19,6 +21,9 @@ struct PlayerInfo {
 
 #[derive(Resource, Default)]
 struct Players(HashMap<u64, PlayerInfo>);
+
+#[derive(Resource, Default)]
+struct CursorWorldPosition(Vec2);
 
 pub struct MainGamePlugin;
 
@@ -29,11 +34,13 @@ impl Plugin for MainGamePlugin {
             .add_event::<ServerMessage>()
             .add_event::<ClientMessage>()
             .insert_resource(Players::default())
+            .insert_resource(CursorWorldPosition::default())
             .add_system_set(
                 SystemSet::on_update(GameState::Game)
                     .with_system(handle_incoming_messages)
                     .with_system(handle_outgoing_messages)
-                    .with_system(handle_new_players),
+                    .with_system(handle_new_players)
+                    .with_system(cursor_world_position_system),
             );
     }
 }
@@ -84,5 +91,29 @@ fn handle_new_players(
                 position: Vec2::ZERO, // TODO: Fetch position from server
             });
         }
+    }
+}
+
+fn cursor_world_position_system(
+    windows: Res<Windows>,
+    query: Query<(&Camera, &GlobalTransform)>,
+    mut cursor_world_position: ResMut<CursorWorldPosition>,
+) {
+    let (camera, camera_transform) = query.single();
+
+    let window = if let RenderTarget::Window(id) = camera.target {
+        windows.get(id).unwrap()
+    } else {
+        windows.get_primary().unwrap()
+    };
+
+    if let Some(screen_pos) = window.cursor_position() {
+        let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+
+        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+
+        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+        cursor_world_position.0 = world_pos.truncate();
     }
 }
