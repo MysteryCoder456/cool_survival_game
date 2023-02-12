@@ -25,7 +25,9 @@ struct Players(HashMap<u64, PlayerInfo>);
 
 fn main() {
     App::new()
-        .add_plugins(MinimalPlugins)
+        .add_plugins(MinimalPlugins.set(CorePlugin {
+            task_pool_options: TaskPoolOptions::with_num_threads(1),
+        }))
         .add_plugin(RenetServerPlugin::default())
         .insert_resource(create_renet_server())
         .insert_resource(Players::default())
