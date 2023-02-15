@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use shared::*;
 
 use super::{PlayerInfo, Players};
-use crate::GameState;
+use crate::{GameState, UIAssets};
 
 pub mod events {
     use bevy::prelude::*;
@@ -17,8 +17,13 @@ pub mod events {
     }
 }
 
+const USERNAME_LABEL_OFFSET: f32 = 50.0;
+
 #[derive(Component)]
 struct SlavePlayer(u64);
+
+#[derive(Component)]
+struct UsernameLabel;
 
 #[derive(Resource)]
 struct SlavePlayerAssets {
@@ -58,6 +63,7 @@ fn spawn_slave_player_system(
     mut events: EventReader<events::SpawnSlavePlayer>,
     mut players: ResMut<Players>,
     slave_player_assets: Res<SlavePlayerAssets>,
+    ui_assets: Res<UIAssets>,
 ) {
     for event in events.iter() {
         let entity = commands
@@ -72,6 +78,30 @@ fn spawn_slave_player_system(
                 },
                 SlavePlayer(event.id),
             ))
+            .with_children(|player| {
+                // Username Label
+                player.spawn((
+                    Text2dBundle {
+                        text: Text {
+                            sections: vec![TextSection::new(
+                                &event.username,
+                                TextStyle {
+                                    font: ui_assets.font.clone(),
+                                    font_size: 20.0,
+                                    color: Color::ANTIQUE_WHITE,
+                                },
+                            )],
+                            alignment: TextAlignment::CENTER,
+                        },
+                        transform: Transform {
+                            translation: Vec3::new(0.0, USERNAME_LABEL_OFFSET, 0.0),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    UsernameLabel,
+                ));
+            })
             .id();
 
         players.0.insert(
@@ -86,16 +116,25 @@ fn spawn_slave_player_system(
 
 fn transform_slave_player_system(
     mut events: EventReader<ServerMessage>,
-    mut query: Query<&mut Transform, With<SlavePlayer>>,
+    mut slave_query: Query<(&mut Transform, &Children), With<SlavePlayer>>,
+    mut username_query: Query<&mut Transform, (With<UsernameLabel>, Without<SlavePlayer>)>,
     players: Res<Players>,
 ) {
     for server_msg in events.iter() {
         if let ServerMessage::PlayerTransformUpdate { id, x, y, rotation } = server_msg {
             if let Some(info) = players.0.get(id) {
-                let mut transform = query.get_mut(info.entity).unwrap();
+                if let Ok((mut transform, children)) = slave_query.get_mut(info.entity) {
+                    let angle = *rotation - FRAC_PI_2;
 
-                transform.translation = Vec3::new(*x, *y, 0.0);
-                transform.rotation = Quat::from_rotation_z(*rotation - FRAC_PI_2);
+                    transform.translation.x = *x;
+                    transform.translation.y = *y;
+                    transform.rotation = Quat::from_rotation_z(angle);
+
+                    let username_label = children.first().unwrap();
+                    let mut username_transform = username_query.get_mut(*username_label).unwrap();
+                    // FIX: Label positions
+                    username_transform.rotation = Quat::from_rotation_z(-angle);
+                }
             }
         }
     }
