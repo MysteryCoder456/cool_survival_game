@@ -5,7 +5,7 @@ use bevy::{prelude::*, time::FixedTimestep};
 use shared::*;
 
 use super::{CursorWorldPosition, PlayerInfo, Players, PHYSICS_TIMESTEP};
-use crate::GameState;
+use crate::{GameState, MainCamera};
 
 const PLAYER_SPEED: f32 = 500.0;
 
@@ -27,7 +27,8 @@ impl Plugin for PlayerPlugin {
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::step(PHYSICS_TIMESTEP))
                     .with_run_criteria(State::on_update(GameState::Game))
-                    .with_system(player_movement_system),
+                    .with_system(player_movement_system)
+                    .with_system(camera_follow_system),
             );
     }
 }
@@ -109,4 +110,17 @@ fn player_movement_system(
             rotation: angle,
         });
     }
+}
+
+fn camera_follow_system(
+    player_query: Query<&Transform, With<Player>>,
+    mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
+) {
+    if player_query.is_empty() || camera_query.is_empty() {
+        return;
+    }
+    let player_tf = player_query.single();
+    let mut camera_tf = camera_query.single_mut();
+
+    camera_tf.translation = player_tf.translation;
 }
