@@ -7,7 +7,7 @@ use shared::*;
 use super::{CursorWorldPosition, PlayerInfo, Players, PHYSICS_TIMESTEP};
 use crate::{GameState, MainCamera};
 
-const PLAYER_SPEED: f32 = 500.0;
+const PLAYER_SPEED: f32 = 300.0;
 
 #[derive(Component)]
 struct Player;
@@ -113,14 +113,25 @@ fn player_movement_system(
 }
 
 fn camera_follow_system(
+    time: Res<Time>,
     player_query: Query<&Transform, With<Player>>,
-    mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
+    mut camera_query: Query<(&mut Transform, &MainCamera), Without<Player>>,
 ) {
     if player_query.is_empty() || camera_query.is_empty() {
         return;
     }
     let player_tf = player_query.single();
-    let mut camera_tf = camera_query.single_mut();
+    let (mut camera_tf, camera) = camera_query.single_mut();
 
-    camera_tf.translation = player_tf.translation;
+    let from = camera_tf.translation;
+    let to = player_tf.translation;
+
+    let direction = (to - from).normalize_or_zero();
+    let speed_adjustment = from.distance(to) / camera.follow_distance;
+    let camera_velocity = direction
+        * speed_adjustment
+        * camera.speed
+        * time.delta_seconds();
+
+    camera_tf.translation += camera_velocity;
 }

@@ -22,7 +22,10 @@ pub struct UIAssets {
 }
 
 #[derive(Component)]
-pub struct MainCamera;
+pub struct MainCamera {
+    pub speed: f32,
+    pub follow_distance: f32,
+}
 
 fn main() {
     App::new()
@@ -52,7 +55,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..Default::default()
         },
-        MainCamera,
+        MainCamera {
+            speed: 400.0,
+            follow_distance: 150.0,
+        },
     ));
 
     let ui_assets = UIAssets {
