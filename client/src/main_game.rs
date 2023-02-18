@@ -39,7 +39,8 @@ impl Plugin for MainGamePlugin {
                 SystemSet::on_update(GameState::Game)
                     .with_system(handle_incoming_messages)
                     .with_system(handle_outgoing_messages)
-                    .with_system(handle_new_players)
+                    .with_system(handle_player_joins)
+                    .with_system(handle_player_leaves)
                     .with_system(cursor_world_position_system),
             );
     }
@@ -79,7 +80,7 @@ fn handle_outgoing_messages(
     }
 }
 
-fn handle_new_players(
+fn handle_player_joins(
     mut server_msg_events: EventReader<ServerMessage>,
     mut spawn_slave_events: EventWriter<SpawnSlavePlayer>,
 ) {
@@ -90,6 +91,17 @@ fn handle_new_players(
                 username: username.clone(),
                 position: Vec2::ZERO, // TODO: Fetch position from server
             });
+        }
+    }
+}
+
+fn handle_player_leaves(
+    mut server_msg_events: EventReader<ServerMessage>,
+    mut despawn_slave_events: EventWriter<DespawnSlavePlayer>,
+) {
+    for server_msg in server_msg_events.iter() {
+        if let ServerMessage::PlayerLeft { id } = server_msg {
+            despawn_slave_events.send(DespawnSlavePlayer { id: *id });
         }
     }
 }

@@ -128,10 +128,7 @@ fn camera_follow_system(
 
     let direction = (to - from).normalize_or_zero();
     let speed_adjustment = from.distance(to) / camera.follow_distance;
-    let camera_velocity = direction
-        * speed_adjustment
-        * camera.speed
-        * time.delta_seconds();
+    let camera_velocity = direction * speed_adjustment * camera.speed * time.delta_seconds();
 
     camera_tf.translation += camera_velocity;
 }
