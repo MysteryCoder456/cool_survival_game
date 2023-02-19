@@ -16,6 +16,11 @@ const BUTTON_MARGIN: UiRect = UiRect {
     right: Val::Px(10.0),
 };
 
+const BUTTON_MIN_SIZE: Size = Size {
+    width: Val::Auto,
+    height: Val::Px(42.0),
+};
+
 #[derive(Component)]
 struct MainMenu;
 
@@ -74,6 +79,7 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
             MainMenu,
         ))
         .with_children(|node| {
+            // FIXME: Make this text align to center
             node.spawn(TextBundle::from_section(
                 "Cool Survival Game",
                 TextStyle {
@@ -97,13 +103,41 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
                 ..Default::default()
             })
             .with_children(|center_node| {
+                // Username "Field"
+                center_node
+                    .spawn(NodeBundle {
+                        background_color: BackgroundColor(Color::rgb(0.48, 0.48, 0.48)),
+                        style: Style {
+                            border: UiRect::all(Val::Px(5.0)),
+                            padding: BUTTON_MARGIN,
+                            margin: BUTTON_MARGIN,
+                            min_size: BUTTON_MIN_SIZE,
+                            align_items: AlignItems::Center,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    })
+                    .with_children(|button| {
+                        button.spawn(TextBundle::from_section(
+                            "Enter A Username",
+                            TextStyle {
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                                font: ui_assets.font.clone(),
+                            },
+                        ));
+                    });
+
+                // Connect Button
                 center_node
                     .spawn((
                         ButtonBundle {
-                            background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
+                            background_color: BackgroundColor(Color::rgb(0.1, 0.1, 0.1)),
                             style: Style {
                                 padding: BUTTON_MARGIN,
                                 margin: BUTTON_MARGIN,
+                                min_size: BUTTON_MIN_SIZE,
+                                align_items: AlignItems::Center,
                                 ..Default::default()
                             },
                             ..Default::default()
@@ -121,13 +155,16 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
                         ));
                     });
 
+                // Quit Button
                 center_node
                     .spawn((
                         ButtonBundle {
-                            background_color: BackgroundColor(Color::rgba(0.1, 0.1, 0.1, 1.0)),
+                            background_color: BackgroundColor(Color::rgb(0.1, 0.1, 0.1)),
                             style: Style {
                                 padding: BUTTON_MARGIN,
                                 margin: BUTTON_MARGIN,
+                                min_size: BUTTON_MIN_SIZE,
+                                align_items: AlignItems::Center,
                                 ..Default::default()
                             },
                             ..Default::default()
