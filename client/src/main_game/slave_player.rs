@@ -15,6 +15,10 @@ pub mod events {
         pub username: String,
         pub position: Vec2,
     }
+
+    pub struct DespawnSlavePlayer {
+        pub id: u64,
+    }
 }
 
 const USERNAME_LABEL_OFFSET: Vec3 = Vec3::new(0.0, 50.0, 0.0);
@@ -38,10 +42,12 @@ pub struct SlavePlayerPlugin;
 impl Plugin for SlavePlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<events::SpawnSlavePlayer>()
+            .add_event::<events::DespawnSlavePlayer>()
             .add_startup_system(setup_slave_player)
             .add_system_set(
                 SystemSet::on_update(GameState::Game)
                     .with_system(spawn_slave_player_system)
+                    .with_system(despawn_slave_player_system)
                     .with_system(transform_slave_player_system),
             );
     }
@@ -114,6 +120,22 @@ fn spawn_slave_player_system(
                 username: event.username.clone(),
             },
         );
+    }
+}
+
+fn despawn_slave_player_system(
+    mut commands: Commands,
+    mut events: EventReader<events::DespawnSlavePlayer>,
+    mut players: ResMut<Players>,
+    query: Query<&SlavePlayer>,
+) {
+    for event in events.iter() {
+        if let Some(player_info) = players.0.remove(&event.id) {
+            if let Ok(slave_player) = query.get(player_info.entity) {
+                commands.entity(slave_player.username_entity).despawn();
+                commands.entity(player_info.entity).despawn();
+            }
+        }
     }
 }
 

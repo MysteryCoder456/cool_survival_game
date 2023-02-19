@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_renet::*;
 
-use crate::{UIAssets, GameState};
+use crate::{GameState, UIAssets};
 
 #[derive(Component)]
 struct ConnectingScreen;

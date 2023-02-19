@@ -21,6 +21,12 @@ pub struct UIAssets {
     font: Handle<Font>,
 }
 
+#[derive(Component)]
+pub struct MainCamera {
+    pub speed: f32,
+    pub follow_distance: f32,
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -42,12 +48,18 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle {
-        camera_2d: Camera2d {
-            clear_color: ClearColorConfig::Custom(Color::DARK_GREEN),
+    commands.spawn((
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(Color::DARK_GREEN),
+            },
+            ..Default::default()
         },
-        ..Default::default()
-    });
+        MainCamera {
+            speed: 400.0,
+            follow_distance: 150.0,
+        },
+    ));
 
     let ui_assets = UIAssets {
         font: asset_server.load("fonts/HackNerdFont.ttf"),
