@@ -30,13 +30,20 @@ enum Button {
     Quit,
 }
 
+#[derive(Component)]
+struct UsernameText;
+
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
             .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(destroy_main_menu))
-            .add_system_set(SystemSet::on_update(GameState::MainMenu).with_system(handle_buttons));
+            .add_system_set(
+                SystemSet::on_update(GameState::MainMenu)
+                    .with_system(handle_username_input)
+                    .with_system(handle_buttons),
+            );
     }
 }
 
@@ -128,14 +135,17 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
                         },
                         ..Default::default()
                     })
-                    .with_children(|button| {
-                        button.spawn(TextBundle::from_section(
-                            "Enter A Username",
-                            TextStyle {
-                                font_size: 25.0,
-                                color: Color::WHITE,
-                                font: ui_assets.font.clone(),
-                            },
+                    .with_children(|field_node| {
+                        field_node.spawn((
+                            TextBundle::from_section(
+                                "Enter A Username",
+                                TextStyle {
+                                    font_size: 25.0,
+                                    color: Color::WHITE,
+                                    font: ui_assets.font.clone(),
+                                },
+                            ),
+                            UsernameText,
                         ));
                     });
 
@@ -199,6 +209,34 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
 fn destroy_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenu>>) {
     if let Ok(entity) = query.get_single() {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn handle_username_input(
+    mut events: EventReader<ReceivedCharacter>,
+    mut query: Query<&mut Text, With<UsernameText>>,
+    mut username: Local<String>,
+    kb: Res<Input<KeyCode>>,
+) {
+    for received in events.iter() {
+        // Make sure the backspace character doesn't get added
+        if received.char != '\u{7f}' {
+            username.push(received.char);
+        }
+    }
+
+    if kb.just_pressed(KeyCode::Back) {
+        username.pop();
+    }
+
+    let mut username_text = query.single_mut();
+    let mut section = &mut username_text.sections[0];
+
+    if username.is_empty() {
+        section.value = "Enter A Username".to_owned();
+    } else {
+        // Only copy the username if it's changed
+        section.value = format!("Username: {}", *username);
     }
 }
 
