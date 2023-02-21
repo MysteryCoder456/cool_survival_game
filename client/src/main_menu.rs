@@ -66,11 +66,9 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
         .spawn((
             NodeBundle {
                 style: Style {
-                    align_items: AlignItems::Center,
-                    align_self: AlignSelf::Center,
                     justify_content: JustifyContent::Center,
                     size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                    padding: UiRect::all(Val::Percent(1.)),
+                    padding: UiRect::all(Val::Px(20.0)),
                     flex_direction: FlexDirection::Column,
                     ..Default::default()
                 },
@@ -79,15 +77,28 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
             MainMenu,
         ))
         .with_children(|node| {
-            // FIXME: Make this text align to center
-            node.spawn(TextBundle::from_section(
-                "Cool Survival Game",
-                TextStyle {
-                    font_size: 40.0,
-                    color: Color::WHITE,
-                    font: ui_assets.font.clone(),
+            // Top Row
+            node.spawn(NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
+                    justify_content: JustifyContent::Center,
+                    align_content: AlignContent::Center,
+                    flex_wrap: FlexWrap::Wrap,
+                    flex_direction: FlexDirection::Row,
+                    ..Default::default()
                 },
-            ));
+                ..Default::default()
+            })
+            .with_children(|row_node| {
+                row_node.spawn(TextBundle::from_section(
+                    "Cool Survival Game",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::WHITE,
+                        font: ui_assets.font.clone(),
+                    },
+                ));
+            });
 
             node.spawn(NodeBundle {
                 style: Style {
@@ -121,7 +132,7 @@ fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
                         button.spawn(TextBundle::from_section(
                             "Enter A Username",
                             TextStyle {
-                                font_size: 20.0,
+                                font_size: 25.0,
                                 color: Color::WHITE,
                                 font: ui_assets.font.clone(),
                             },
