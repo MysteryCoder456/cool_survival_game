@@ -33,11 +33,15 @@ enum Button {
 #[derive(Component)]
 struct UsernameText;
 
+#[derive(Resource)]
+pub struct MyUsername(pub String);
+
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
+        app.insert_resource(MyUsername(String::new()))
+            .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
             .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(destroy_main_menu))
             .add_system_set(
                 SystemSet::on_update(GameState::MainMenu)
@@ -215,28 +219,27 @@ fn destroy_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenu>
 fn handle_username_input(
     mut events: EventReader<ReceivedCharacter>,
     mut query: Query<&mut Text, With<UsernameText>>,
-    mut username: Local<String>,
+    mut username: ResMut<MyUsername>,
     kb: Res<Input<KeyCode>>,
 ) {
     for received in events.iter() {
-        // Make sure the backspace character doesn't get added
-        if received.char != '\u{7f}' {
-            username.push(received.char);
+        if !received.char.is_control() {
+            username.0.push(received.char);
         }
     }
 
     if kb.just_pressed(KeyCode::Back) {
-        username.pop();
+        username.0.pop();
     }
 
     let mut username_text = query.single_mut();
     let mut section = &mut username_text.sections[0];
 
-    if username.is_empty() {
+    if username.0.is_empty() {
         section.value = "Enter A Username".to_owned();
     } else {
         // Only copy the username if it's changed
-        section.value = format!("Username: {}", *username);
+        section.value = format!("Username: {}", username.0);
     }
 }
 
