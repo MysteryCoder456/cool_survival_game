@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use bevy::prelude::*;
 
 pub const PROTOCOL_ID: u64 = 1;
 
@@ -33,6 +34,6 @@ pub enum ServerMessage {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientMessage {
     PlayerTransformUpdate { x: f32, y: f32, rotation: f32 },
-
+    Shoot { position: Vec2, direction: f32 },
     ChatMessage(String),
 }

@@ -23,6 +23,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_player)
             .add_system_set(SystemSet::on_enter(GameState::Game).with_system(spawn_player_system))
+            .add_system_set(SystemSet::on_update(GameState::Game).with_system(shoot_system))
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(FixedTimestep::step(PHYSICS_TIMESTEP))
@@ -132,4 +133,25 @@ fn camera_follow_system(
     let camera_velocity = direction * speed_adjustment * camera.speed * time.delta_seconds();
 
     camera_tf.translation += camera_velocity;
+}
+
+fn shoot_system(
+    mut events: EventWriter<ClientMessage>,
+    mouse: Res<Input<MouseButton>>,
+    mouse_pos: Res<CursorWorldPosition>,
+    query: Query<&Transform, With<Player>>,
+) {
+    // TODO: Shoot cooldown
+
+    if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+
+    let player_tf = query.single();
+    let direction = player_tf.translation.truncate().angle_between(mouse_pos.0);
+
+    events.send(ClientMessage::Shoot {
+        position: player_tf.translation.truncate(),
+        direction,
+    });
 }
