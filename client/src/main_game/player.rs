@@ -5,7 +5,7 @@ use bevy::{prelude::*, time::FixedTimestep};
 use shared::*;
 
 use super::{CursorWorldPosition, PlayerInfo, Players, PHYSICS_TIMESTEP};
-use crate::{GameState, MainCamera};
+use crate::{main_menu::MyUsername, GameState, MainCamera};
 
 const PLAYER_SPEED: f32 = 300.0;
 
@@ -51,6 +51,7 @@ fn spawn_player_system(
     mut commands: Commands,
     mut players: ResMut<Players>,
     client: Res<bevy_renet::renet::RenetClient>,
+    username: Res<MyUsername>,
     player_assets: Res<PlayerAssets>,
 ) {
     let entity = commands
@@ -67,7 +68,7 @@ fn spawn_player_system(
         client.client_id(),
         PlayerInfo {
             entity,
-            username: "".to_owned(), // TODO: this should be the username of the current player
+            username: username.0.clone(),
         },
     );
 }

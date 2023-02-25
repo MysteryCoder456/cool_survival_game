@@ -25,7 +25,6 @@ const USERNAME_LABEL_OFFSET: Vec3 = Vec3::new(0.0, 50.0, 0.0);
 
 #[derive(Component)]
 struct SlavePlayer {
-    id: u64,
     username_entity: Entity,
 }
 
@@ -106,10 +105,7 @@ fn spawn_slave_player_system(
                     },
                     ..Default::default()
                 },
-                SlavePlayer {
-                    id: event.id,
-                    username_entity,
-                },
+                SlavePlayer { username_entity },
             ))
             .id();
 

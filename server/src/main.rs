@@ -130,15 +130,22 @@ fn handle_server_events(
 ) {
     for event in server_events.iter() {
         match event {
-            ServerEvent::ClientConnected(new_id, _) => {
-                println!("{} has joined the game", new_id);
-                let username = format!("John Doe {}", new_id); // TODO: Fetch username from client
+            ServerEvent::ClientConnected(new_id, user_data) => {
+                let user_data = bincode::deserialize::<UserData>(&**user_data);
+                if user_data.is_err() {
+                    continue;
+                }
+
+                let user_data = user_data.unwrap();
+                let username = user_data.username.trim();
+
+                println!("{} has joined the game as {}", new_id, user_data.username);
 
                 // Inform existing players about new player
                 server_broadcast_events.send(Broadcast {
                     message: ServerMessage::PlayerJoined {
                         id: *new_id,
-                        username: username.clone(),
+                        username: username.to_owned(),
                         // TODO: Add spawn position
                     },
                     except: Some(*new_id),
@@ -159,7 +166,7 @@ fn handle_server_events(
                 players.0.insert(
                     *new_id,
                     PlayerInfo {
-                        username: username.clone(),
+                        username: username.to_owned(),
                     },
                 );
             }

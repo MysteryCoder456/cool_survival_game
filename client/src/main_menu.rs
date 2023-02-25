@@ -1,13 +1,14 @@
 use std::{
+    error::Error,
     net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
 
 use bevy::{app::AppExit, prelude::*};
-use bevy_renet::*;
+use bevy_renet::{renet::NETCODE_USER_DATA_BYTES, *};
 
 use crate::{GameState, UIAssets};
-use shared::PROTOCOL_ID;
+use shared::*;
 
 const BUTTON_MARGIN: UiRect = UiRect {
     top: Val::Px(10.0),
@@ -51,25 +52,43 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-fn create_renet_client() -> renet::RenetClient {
-    let current_time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
+fn create_renet_client(user_data: UserData) -> Result<renet::RenetClient, Box<dyn Error>> {
+    let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
 
     // TODO: Implement entering a custom server address
-    let server_addr: SocketAddr = "127.0.0.1:5678".parse().unwrap();
-    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let server_addr: SocketAddr = "127.0.0.1:5678".parse()?;
+    let socket = UdpSocket::bind("127.0.0.1:0")?;
 
     let config = renet::RenetConnectionConfig::default();
+
+    let user_data_serialized = {
+        // Check whether the serialized data would be small enough
+        if bincode::serialized_size::<UserData>(&user_data)? as usize > NETCODE_USER_DATA_BYTES {
+            return Err(format!(
+                "User data is too large (>{} bytes)",
+                NETCODE_USER_DATA_BYTES
+            )
+            .into());
+        }
+
+        let user_data = bincode::serialize(&user_data)?;
+        let mut data_array: [u8; 256] = [0; NETCODE_USER_DATA_BYTES];
+
+        for i in 0..user_data.len() {
+            data_array[i] = user_data[i];
+        }
+
+        data_array
+    };
 
     let authentication = renet::ClientAuthentication::Unsecure {
         protocol_id: PROTOCOL_ID,
         client_id: current_time.as_millis() as u64,
         server_addr,
-        user_data: None,
+        user_data: Some(user_data_serialized),
     };
 
-    renet::RenetClient::new(current_time, socket, config, authentication).unwrap()
+    renet::RenetClient::new(current_time, socket, config, authentication).map_err(|e| e.into())
 }
 
 fn setup_main_menu(mut commands: Commands, ui_assets: Res<UIAssets>) {
@@ -223,7 +242,8 @@ fn handle_username_input(
     kb: Res<Input<KeyCode>>,
 ) {
     for received in events.iter() {
-        if !received.char.is_control() {
+        let ch = received.char;
+        if !(ch.is_control() || ch.is_whitespace()) {
             username.0.push(received.char);
         }
     }
@@ -247,6 +267,7 @@ fn handle_buttons(
     mut commands: Commands,
     mut game_state: ResMut<State<GameState>>,
     mut exit: EventWriter<AppExit>,
+    username: Res<MyUsername>,
     query: Query<(&Button, &Interaction), Changed<Interaction>>,
 ) {
     for (btn, interaction) in query.iter() {
@@ -256,9 +277,25 @@ fn handle_buttons(
 
         match *btn {
             Button::Connect => {
-                let client = create_renet_client();
-                commands.insert_resource(client);
-                let _ = game_state.set(GameState::Connecting);
+                // Only connect if username is not empty
+                if username.0.is_empty() {
+                    break;
+                }
+
+                let client = create_renet_client(UserData {
+                    username: username.0.trim().to_owned(),
+                });
+
+                match client {
+                    Ok(client) => {
+                        commands.insert_resource(client);
+                        let _ = game_state.set(GameState::Connecting);
+                    }
+                    Err(e) => {
+                        // TODO: Display error message in GUI.
+                        eprintln!("{e:?}");
+                    }
+                };
             }
             Button::Quit => exit.send_default(),
         }
