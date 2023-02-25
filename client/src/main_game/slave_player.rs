@@ -142,13 +142,17 @@ fn transform_slave_player_system(
     players: Res<Players>,
 ) {
     for server_msg in events.iter() {
-        if let ServerMessage::PlayerTransformUpdate { id, x, y, rotation } = server_msg {
+        if let ServerMessage::PlayerTransformUpdate {
+            id,
+            position,
+            rotation,
+        } = server_msg
+        {
             if let Some(info) = players.0.get(id) {
                 if let Ok((mut player_tf, player)) = slave_query.get_mut(info.entity) {
                     let angle = *rotation - FRAC_PI_2;
 
-                    player_tf.translation.x = *x;
-                    player_tf.translation.y = *y;
+                    player_tf.translation = position.extend(0.0);
                     player_tf.rotation = Quat::from_rotation_z(angle);
 
                     let mut username_tf = username_query.get_mut(player.username_entity).unwrap();

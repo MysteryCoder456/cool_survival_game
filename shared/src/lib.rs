@@ -20,8 +20,7 @@ pub enum ServerMessage {
 
     PlayerTransformUpdate {
         id: u64,
-        x: f32,
-        y: f32,
+        position: Vec2,
         rotation: f32,
     },
 
@@ -33,7 +32,7 @@ pub enum ServerMessage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientMessage {
-    PlayerTransformUpdate { x: f32, y: f32, rotation: f32 },
+    PlayerTransformUpdate { position: Vec2, rotation: f32 },
     Shoot { position: Vec2, direction: f32 },
     ChatMessage(String),
 }

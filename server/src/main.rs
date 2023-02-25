@@ -188,12 +188,11 @@ fn player_transform_update_system(
     mut server_broadcast_events: EventWriter<Broadcast>,
 ) {
     for client_msg in client_msg_events.iter() {
-        if let (id, ClientMessage::PlayerTransformUpdate { x, y, rotation }) = client_msg {
+        if let (id, ClientMessage::PlayerTransformUpdate { position, rotation }) = client_msg {
             server_broadcast_events.send(Broadcast {
                 message: ServerMessage::PlayerTransformUpdate {
                     id: *id,
-                    x: *x,
-                    y: *y,
+                    position: *position,
                     rotation: *rotation,
                 },
                 except: Some(*id),

@@ -107,8 +107,7 @@ fn player_movement_system(
     // Send transform update to server if transform has changed
     if *transform != old_transform {
         events.send(ClientMessage::PlayerTransformUpdate {
-            x: transform.translation.x,
-            y: transform.translation.y,
+            position: transform.translation.truncate(),
             rotation: angle,
         });
     }
