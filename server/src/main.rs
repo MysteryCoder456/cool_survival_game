@@ -7,9 +7,12 @@ use std::{
 use bevy::prelude::*;
 use bevy_renet::{renet::ServerEvent, *};
 
+use player::PlayerPlugin;
 use shared::*;
 
-const MAX_PLAYERS: usize = 10;
+mod player;
+
+const MAX_CLIENTS: usize = 10;
 
 struct Broadcast {
     message: ServerMessage,
@@ -29,6 +32,7 @@ fn main() {
             task_pool_options: TaskPoolOptions::with_num_threads(1),
         }))
         .add_plugin(RenetServerPlugin::default())
+        .add_plugin(PlayerPlugin)
         .insert_resource(create_renet_server())
         .insert_resource(Players::default())
         .add_event::<Broadcast>()
@@ -38,7 +42,6 @@ fn main() {
         .add_system(handle_outgoing_broadcasts)
         .add_system(handle_outgoing_messages)
         .add_system(handle_server_events)
-        .add_system(player_transform_update_system)
         .run();
 }
 
@@ -49,7 +52,7 @@ fn create_renet_server() -> renet::RenetServer {
 
     let server_addr: SocketAddr = "127.0.0.1:5678".parse().unwrap();
     let server_config = renet::ServerConfig::new(
-        MAX_PLAYERS,
+        MAX_CLIENTS,
         PROTOCOL_ID,
         server_addr,
         renet::ServerAuthentication::Unsecure,
@@ -179,24 +182,6 @@ fn handle_server_events(
                 });
                 players.0.remove(id);
             }
-        }
-    }
-}
-
-fn player_transform_update_system(
-    mut client_msg_events: EventReader<(u64, ClientMessage)>,
-    mut server_broadcast_events: EventWriter<Broadcast>,
-) {
-    for client_msg in client_msg_events.iter() {
-        if let (id, ClientMessage::PlayerTransformUpdate { position, rotation }) = client_msg {
-            server_broadcast_events.send(Broadcast {
-                message: ServerMessage::PlayerTransformUpdate {
-                    id: *id,
-                    position: *position,
-                    rotation: *rotation,
-                },
-                except: Some(*id),
-            });
         }
     }
 }
