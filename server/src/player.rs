@@ -109,6 +109,7 @@ fn player_shoot_system(
 
             // TODO: Spawn Orc
             // TODO: Shoot cooldown
+            println!("Shooting");
         }
     }
 }

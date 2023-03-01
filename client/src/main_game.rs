@@ -85,11 +85,16 @@ fn handle_player_joins(
     mut spawn_slave_events: EventWriter<SpawnSlavePlayer>,
 ) {
     for server_msg in server_msg_events.iter() {
-        if let ServerMessage::PlayerJoined { id, username } = server_msg {
+        if let ServerMessage::PlayerJoined {
+            id,
+            username,
+            position,
+        } = server_msg
+        {
             spawn_slave_events.send(SpawnSlavePlayer {
                 id: *id,
                 username: username.clone(),
-                position: Vec2::ZERO, // TODO: Fetch position from server
+                position: *position,
             });
         }
     }

@@ -13,6 +13,7 @@ pub enum ServerMessage {
     PlayerJoined {
         id: u64,
         username: String,
+        position: Vec2,
     },
     PlayerLeft {
         id: u64,

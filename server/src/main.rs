@@ -13,6 +13,7 @@ use shared::*;
 mod player;
 
 const MAX_CLIENTS: usize = 10;
+const PLAYER_SPAWN: Vec2 = Vec2::ZERO;
 
 struct Broadcast {
     message: ServerMessage,
@@ -132,7 +133,7 @@ fn handle_server_events(
     mut server_msg_events: EventWriter<(u64, ServerMessage)>,
     mut player_spawn_events: EventWriter<SpawnPlayer>,
     mut player_despawn_events: EventWriter<DespawnPlayer>,
-    mut players: ResMut<Players>,
+    players: Res<Players>,
 ) {
     for event in server_events.iter() {
         match event {
@@ -144,7 +145,6 @@ fn handle_server_events(
 
                 let user_data = user_data.unwrap();
                 let username = user_data.username.trim();
-                let spawn_pos = Vec2::ZERO; // TODO: Get spawn position from somewhere
 
                 println!("{} has joined the game as {}", new_id, user_data.username);
 
@@ -153,7 +153,7 @@ fn handle_server_events(
                     message: ServerMessage::PlayerJoined {
                         id: *new_id,
                         username: username.to_owned(),
-                        // TODO: Add spawn position
+                        position: PLAYER_SPAWN,
                     },
                     except: Some(*new_id),
                 });
@@ -165,6 +165,7 @@ fn handle_server_events(
                         ServerMessage::PlayerJoined {
                             id: *player_id,
                             username: player_info.username.clone(),
+                            position: PLAYER_SPAWN,
                         },
                     ));
                 });
@@ -172,7 +173,7 @@ fn handle_server_events(
                 // Spawn the new player in server world
                 player_spawn_events.send(SpawnPlayer {
                     id: *new_id,
-                    position: spawn_pos,
+                    position: PLAYER_SPAWN,
                     username: username.to_owned(),
                 })
             }
