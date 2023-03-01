@@ -7,7 +7,7 @@ use std::{
 use bevy::prelude::*;
 use bevy_renet::{renet::ServerEvent, *};
 
-use player::PlayerPlugin;
+use player::{events::*, PlayerPlugin};
 use shared::*;
 
 mod player;
@@ -20,6 +20,7 @@ struct Broadcast {
 }
 
 struct PlayerInfo {
+    entity: Entity,
     username: String,
 }
 
@@ -129,6 +130,8 @@ fn handle_server_events(
     mut server_events: EventReader<ServerEvent>,
     mut server_broadcast_events: EventWriter<Broadcast>,
     mut server_msg_events: EventWriter<(u64, ServerMessage)>,
+    mut player_spawn_events: EventWriter<SpawnPlayer>,
+    mut player_despawn_events: EventWriter<DespawnPlayer>,
     mut players: ResMut<Players>,
 ) {
     for event in server_events.iter() {
@@ -141,6 +144,7 @@ fn handle_server_events(
 
                 let user_data = user_data.unwrap();
                 let username = user_data.username.trim();
+                let spawn_pos = Vec2::ZERO; // TODO: Get spawn position from somewhere
 
                 println!("{} has joined the game as {}", new_id, user_data.username);
 
@@ -165,22 +169,21 @@ fn handle_server_events(
                     ));
                 });
 
-                // Add new player info to players list
-                players.0.insert(
-                    *new_id,
-                    PlayerInfo {
-                        username: username.to_owned(),
-                    },
-                );
+                // Spawn the new player in server world
+                player_spawn_events.send(SpawnPlayer {
+                    id: *new_id,
+                    position: spawn_pos,
+                    username: username.to_owned(),
+                })
             }
             ServerEvent::ClientDisconnected(id) => {
                 println!("{} has left the game", id);
+                player_despawn_events.send(DespawnPlayer { id: *id });
 
                 server_broadcast_events.send(Broadcast {
                     message: ServerMessage::PlayerLeft { id: *id },
                     except: None,
                 });
-                players.0.remove(id);
             }
         }
     }
