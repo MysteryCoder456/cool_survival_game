@@ -25,6 +25,11 @@ pub enum ServerMessage {
         rotation: f32,
     },
 
+    SpawnOrc {
+        position: Vec2,
+        direction: f32,
+    },
+
     ChatMessage {
         author: u64,
         content: String,

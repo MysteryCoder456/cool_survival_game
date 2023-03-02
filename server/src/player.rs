@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
-use super::{Broadcast, PlayerInfo, Players};
-use shared::{ClientMessage, ServerMessage};
+use super::{Broadcast, ClientMessage, PlayerInfo, Players};
 
 pub mod events {
     use bevy::prelude::Vec2;
@@ -75,13 +74,15 @@ fn despawn_player_system(
 }
 
 fn player_transform_update_system(
-    mut client_msg_events: EventReader<(u64, ClientMessage)>,
+    mut client_msg_events: EventReader<ClientMessage>,
     mut server_broadcast_events: EventWriter<Broadcast>,
 ) {
     for client_msg in client_msg_events.iter() {
-        if let (id, ClientMessage::PlayerTransformUpdate { position, rotation }) = client_msg {
+        if let (id, shared::ClientMessage::PlayerTransformUpdate { position, rotation }) =
+            client_msg
+        {
             server_broadcast_events.send(Broadcast {
-                message: ServerMessage::PlayerTransformUpdate {
+                message: shared::ServerMessage::PlayerTransformUpdate {
                     id: *id,
                     position: *position,
                     rotation: *rotation,
@@ -93,12 +94,12 @@ fn player_transform_update_system(
 }
 
 fn player_shoot_system(
-    mut client_msg_events: EventReader<(u64, ClientMessage)>,
+    mut client_msg_events: EventReader<ClientMessage>,
     query: Query<&Transform, With<Player>>,
     players: Res<Players>,
 ) {
     for (player_id, client_msg) in client_msg_events.iter() {
-        if let ClientMessage::Shoot { direction } = client_msg {
+        if let shared::ClientMessage::Shoot { direction } = client_msg {
             let player_info = players.0.get(player_id);
             if player_info.is_none() {
                 continue;
@@ -109,7 +110,6 @@ fn player_shoot_system(
 
             // TODO: Spawn Orc
             // TODO: Shoot cooldown
-            println!("Shooting");
         }
     }
 }

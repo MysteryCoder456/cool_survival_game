@@ -8,15 +8,18 @@ use bevy::prelude::*;
 use bevy_renet::{renet::ServerEvent, *};
 
 use player::{events::*, PlayerPlugin};
-use shared::*;
+use shared::{UserData, PROTOCOL_ID};
 
 mod player;
 
 const MAX_CLIENTS: usize = 10;
 const PLAYER_SPAWN: Vec2 = Vec2::ZERO;
 
+type ServerMessage = (u64, shared::ServerMessage);
+type ClientMessage = (u64, shared::ClientMessage);
+
 struct Broadcast {
-    message: ServerMessage,
+    message: shared::ServerMessage,
     except: Option<u64>,
 }
 
@@ -38,8 +41,8 @@ fn main() {
         .insert_resource(create_renet_server())
         .insert_resource(Players::default())
         .add_event::<Broadcast>()
-        .add_event::<(u64, ServerMessage)>()
-        .add_event::<(u64, ClientMessage)>()
+        .add_event::<ServerMessage>()
+        .add_event::<ClientMessage>()
         .add_system(handle_incoming_messages)
         .add_system(handle_outgoing_broadcasts)
         .add_system(handle_outgoing_messages)
@@ -68,7 +71,7 @@ fn create_renet_server() -> renet::RenetServer {
 
 fn handle_incoming_messages(
     mut server: ResMut<renet::RenetServer>,
-    mut events: EventWriter<(u64, ClientMessage)>,
+    mut events: EventWriter<ClientMessage>,
 ) {
     let channel_id = 0;
 
@@ -112,7 +115,7 @@ fn handle_outgoing_broadcasts(
 /// Handle server messages which have to be sent to only one specific client
 fn handle_outgoing_messages(
     mut server: ResMut<renet::RenetServer>,
-    mut events: EventReader<(u64, ServerMessage)>,
+    mut events: EventReader<ServerMessage>,
 ) {
     let channel_id = 0;
 
@@ -130,7 +133,7 @@ fn handle_outgoing_messages(
 fn handle_server_events(
     mut server_events: EventReader<ServerEvent>,
     mut server_broadcast_events: EventWriter<Broadcast>,
-    mut server_msg_events: EventWriter<(u64, ServerMessage)>,
+    mut server_msg_events: EventWriter<ServerMessage>,
     mut player_spawn_events: EventWriter<SpawnPlayer>,
     mut player_despawn_events: EventWriter<DespawnPlayer>,
     players: Res<Players>,
@@ -150,7 +153,7 @@ fn handle_server_events(
 
                 // Inform existing players about new player
                 server_broadcast_events.send(Broadcast {
-                    message: ServerMessage::PlayerJoined {
+                    message: shared::ServerMessage::PlayerJoined {
                         id: *new_id,
                         username: username.to_owned(),
                         position: PLAYER_SPAWN,
@@ -162,7 +165,7 @@ fn handle_server_events(
                 players.0.iter().for_each(|(player_id, player_info)| {
                     server_msg_events.send((
                         *new_id,
-                        ServerMessage::PlayerJoined {
+                        shared::ServerMessage::PlayerJoined {
                             id: *player_id,
                             username: player_info.username.clone(),
                             position: PLAYER_SPAWN,
@@ -182,7 +185,7 @@ fn handle_server_events(
                 player_despawn_events.send(DespawnPlayer { id: *id });
 
                 server_broadcast_events.send(Broadcast {
-                    message: ServerMessage::PlayerLeft { id: *id },
+                    message: shared::ServerMessage::PlayerLeft { id: *id },
                     except: None,
                 });
             }
