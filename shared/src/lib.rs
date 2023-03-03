@@ -26,6 +26,7 @@ pub enum ServerMessage {
     },
 
     SpawnOrc {
+        id: u64,
         position: Vec2,
         direction: f32,
     },

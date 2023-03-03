@@ -1,6 +1,8 @@
+use std::time::SystemTime;
+
 use bevy::prelude::*;
 
-use super::{Broadcast, PlayerInfo, Players, CM};
+use crate::{orc::events::*, Broadcast, PlayerInfo, Players, CM};
 use shared::*;
 
 pub mod events {
@@ -94,9 +96,13 @@ fn player_transform_update_system(
 
 fn player_shoot_system(
     mut client_msg_events: EventReader<CM>,
+    mut server_broadcast_events: EventWriter<Broadcast>,
+    mut spawn_orc_events: EventWriter<SpawnOrc>,
     query: Query<&Transform, With<Player>>,
     players: Res<Players>,
 ) {
+    // TODO: Shoot cooldown
+
     for (player_id, client_msg) in client_msg_events.iter() {
         if let ClientMessage::Shoot { direction } = client_msg {
             let player_info = players.0.get(player_id);
@@ -106,9 +112,30 @@ fn player_shoot_system(
 
             let player_info = player_info.unwrap();
             let player_tf = query.get(player_info.entity).unwrap();
+            let orc_position = player_tf.translation.truncate();
+            let direction = *direction;
 
-            // TODO: Spawn Orc
-            // TODO: Shoot cooldown
+            let orc_id = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+
+            // Spawn orc in server world
+            spawn_orc_events.send(SpawnOrc {
+                id: orc_id,
+                position: orc_position,
+                direction,
+            });
+
+            // Broadcast spawn orc message
+            server_broadcast_events.send(Broadcast {
+                message: ServerMessage::SpawnOrc {
+                    id: orc_id,
+                    position: orc_position,
+                    direction,
+                },
+                except: None,
+            });
         }
     }
 }

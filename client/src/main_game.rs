@@ -5,10 +5,12 @@ use bevy_renet::*;
 
 use shared::*;
 
+mod orc;
 mod player;
 mod slave_player;
 
 use crate::GameState;
+use orc::OrcPlugin;
 use player::PlayerPlugin;
 use slave_player::{events::*, SlavePlayerPlugin};
 
@@ -31,6 +33,7 @@ impl Plugin for MainGamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(PlayerPlugin)
             .add_plugin(SlavePlayerPlugin)
+            .add_plugin(OrcPlugin)
             .add_event::<ServerMessage>()
             .add_event::<ClientMessage>()
             .insert_resource(Players::default())

@@ -10,6 +10,7 @@ use bevy_renet::{renet::ServerEvent, *};
 use player::{events::*, PlayerPlugin};
 use shared::*;
 
+mod orc;
 mod player;
 
 const MAX_CLIENTS: usize = 10;
