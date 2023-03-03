@@ -8,18 +8,18 @@ use bevy::prelude::*;
 use bevy_renet::{renet::ServerEvent, *};
 
 use player::{events::*, PlayerPlugin};
-use shared::{UserData, PROTOCOL_ID};
+use shared::*;
 
 mod player;
 
 const MAX_CLIENTS: usize = 10;
 const PLAYER_SPAWN: Vec2 = Vec2::ZERO;
 
-type ServerMessage = (u64, shared::ServerMessage);
-type ClientMessage = (u64, shared::ClientMessage);
+type SM = (u64, ServerMessage);
+type CM = (u64, ClientMessage);
 
 struct Broadcast {
-    message: shared::ServerMessage,
+    message: ServerMessage,
     except: Option<u64>,
 }
 
@@ -41,8 +41,8 @@ fn main() {
         .insert_resource(create_renet_server())
         .insert_resource(Players::default())
         .add_event::<Broadcast>()
-        .add_event::<ServerMessage>()
-        .add_event::<ClientMessage>()
+        .add_event::<SM>()
+        .add_event::<CM>()
         .add_system(handle_incoming_messages)
         .add_system(handle_outgoing_broadcasts)
         .add_system(handle_outgoing_messages)
@@ -69,15 +69,12 @@ fn create_renet_server() -> renet::RenetServer {
     renet::RenetServer::new(current_time, server_config, connection_config, socket).unwrap()
 }
 
-fn handle_incoming_messages(
-    mut server: ResMut<renet::RenetServer>,
-    mut events: EventWriter<ClientMessage>,
-) {
+fn handle_incoming_messages(mut server: ResMut<renet::RenetServer>, mut events: EventWriter<CM>) {
     let channel_id = 0;
 
     for client_id in server.clients_id() {
         while let Some(serialized_msg) = server.receive_message(client_id, channel_id) {
-            match bincode::deserialize(&serialized_msg) {
+            match bincode::deserialize::<ClientMessage>(&serialized_msg) {
                 Ok(client_msg) => events.send((client_id, client_msg)),
                 Err(error) => eprintln!(
                     "An error occured while deserializing client message:\n{}",
@@ -113,10 +110,7 @@ fn handle_outgoing_broadcasts(
 }
 
 /// Handle server messages which have to be sent to only one specific client
-fn handle_outgoing_messages(
-    mut server: ResMut<renet::RenetServer>,
-    mut events: EventReader<ServerMessage>,
-) {
+fn handle_outgoing_messages(mut server: ResMut<renet::RenetServer>, mut events: EventReader<SM>) {
     let channel_id = 0;
 
     for (recipient_id, server_msg) in events.iter() {
@@ -133,7 +127,7 @@ fn handle_outgoing_messages(
 fn handle_server_events(
     mut server_events: EventReader<ServerEvent>,
     mut server_broadcast_events: EventWriter<Broadcast>,
-    mut server_msg_events: EventWriter<ServerMessage>,
+    mut server_msg_events: EventWriter<SM>,
     mut player_spawn_events: EventWriter<SpawnPlayer>,
     mut player_despawn_events: EventWriter<DespawnPlayer>,
     players: Res<Players>,
@@ -153,7 +147,7 @@ fn handle_server_events(
 
                 // Inform existing players about new player
                 server_broadcast_events.send(Broadcast {
-                    message: shared::ServerMessage::PlayerJoined {
+                    message: ServerMessage::PlayerJoined {
                         id: *new_id,
                         username: username.to_owned(),
                         position: PLAYER_SPAWN,
@@ -165,7 +159,7 @@ fn handle_server_events(
                 players.0.iter().for_each(|(player_id, player_info)| {
                     server_msg_events.send((
                         *new_id,
-                        shared::ServerMessage::PlayerJoined {
+                        ServerMessage::PlayerJoined {
                             id: *player_id,
                             username: player_info.username.clone(),
                             position: PLAYER_SPAWN,
@@ -185,7 +179,7 @@ fn handle_server_events(
                 player_despawn_events.send(DespawnPlayer { id: *id });
 
                 server_broadcast_events.send(Broadcast {
-                    message: shared::ServerMessage::PlayerLeft { id: *id },
+                    message: ServerMessage::PlayerLeft { id: *id },
                     except: None,
                 });
             }

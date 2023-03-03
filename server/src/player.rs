@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-use super::{Broadcast, ClientMessage, PlayerInfo, Players};
+use super::{Broadcast, PlayerInfo, Players, CM};
+use shared::*;
 
 pub mod events {
     use bevy::prelude::Vec2;
@@ -74,15 +75,13 @@ fn despawn_player_system(
 }
 
 fn player_transform_update_system(
-    mut client_msg_events: EventReader<ClientMessage>,
+    mut client_msg_events: EventReader<CM>,
     mut server_broadcast_events: EventWriter<Broadcast>,
 ) {
     for client_msg in client_msg_events.iter() {
-        if let (id, shared::ClientMessage::PlayerTransformUpdate { position, rotation }) =
-            client_msg
-        {
+        if let (id, ClientMessage::PlayerTransformUpdate { position, rotation }) = client_msg {
             server_broadcast_events.send(Broadcast {
-                message: shared::ServerMessage::PlayerTransformUpdate {
+                message: ServerMessage::PlayerTransformUpdate {
                     id: *id,
                     position: *position,
                     rotation: *rotation,
@@ -94,12 +93,12 @@ fn player_transform_update_system(
 }
 
 fn player_shoot_system(
-    mut client_msg_events: EventReader<ClientMessage>,
+    mut client_msg_events: EventReader<CM>,
     query: Query<&Transform, With<Player>>,
     players: Res<Players>,
 ) {
     for (player_id, client_msg) in client_msg_events.iter() {
-        if let shared::ClientMessage::Shoot { direction } = client_msg {
+        if let ClientMessage::Shoot { direction } = client_msg {
             let player_info = players.0.get(player_id);
             if player_info.is_none() {
                 continue;
