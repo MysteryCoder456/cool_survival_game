@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use bevy::{prelude::*, render::camera::RenderTarget};
 use bevy_renet::*;
 
+use crate::GameState;
 use shared::*;
 
 mod orc;
 mod player;
 mod slave_player;
 
-use crate::GameState;
 use orc::{events::*, OrcPlugin};
 use player::PlayerPlugin;
 use slave_player::{events::*, SlavePlayerPlugin};
