@@ -6,6 +6,7 @@ pub mod events {
     pub struct SpawnOrc {
         pub id: u64,
         pub position: Vec2,
+        pub direction: f32,
     }
 
     pub struct OrcTransformUpdate {

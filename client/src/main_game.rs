@@ -10,7 +10,7 @@ mod player;
 mod slave_player;
 
 use crate::GameState;
-use orc::OrcPlugin;
+use orc::{events::*, OrcPlugin};
 use player::PlayerPlugin;
 use slave_player::{events::*, SlavePlayerPlugin};
 
@@ -42,8 +42,8 @@ impl Plugin for MainGamePlugin {
                 SystemSet::on_update(GameState::Game)
                     .with_system(handle_incoming_messages)
                     .with_system(handle_outgoing_messages)
-                    .with_system(handle_player_joins)
-                    .with_system(handle_player_leaves)
+                    .with_system(handle_entity_spawns)
+                    .with_system(handle_entity_despawns)
                     .with_system(cursor_world_position_system),
             );
     }
@@ -83,33 +83,48 @@ fn handle_outgoing_messages(
     }
 }
 
-fn handle_player_joins(
+fn handle_entity_spawns(
     mut server_msg_events: EventReader<ServerMessage>,
     mut spawn_slave_events: EventWriter<SpawnSlavePlayer>,
+    mut spawn_orc_events: EventWriter<SpawnOrc>,
 ) {
+    type S = ServerMessage;
+
     for server_msg in server_msg_events.iter() {
-        if let ServerMessage::PlayerJoined {
-            id,
-            username,
-            position,
-        } = server_msg
-        {
-            spawn_slave_events.send(SpawnSlavePlayer {
+        match server_msg {
+            S::PlayerJoined {
+                id,
+                username,
+                position,
+            } => spawn_slave_events.send(SpawnSlavePlayer {
                 id: *id,
                 username: username.clone(),
                 position: *position,
-            });
+            }),
+            S::SpawnOrc {
+                id,
+                position,
+                direction,
+            } => spawn_orc_events.send(SpawnOrc {
+                id: *id,
+                position: *position,
+                direction: *direction,
+            }),
+            _ => {}
         }
     }
 }
 
-fn handle_player_leaves(
+fn handle_entity_despawns(
     mut server_msg_events: EventReader<ServerMessage>,
     mut despawn_slave_events: EventWriter<DespawnSlavePlayer>,
 ) {
+    type S = ServerMessage;
+
     for server_msg in server_msg_events.iter() {
-        if let ServerMessage::PlayerLeft { id } = server_msg {
-            despawn_slave_events.send(DespawnSlavePlayer { id: *id });
+        match server_msg {
+            S::PlayerLeft { id } => despawn_slave_events.send(DespawnSlavePlayer { id: *id }),
+            _ => {}
         }
     }
 }
