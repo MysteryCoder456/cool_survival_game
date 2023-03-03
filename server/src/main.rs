@@ -15,6 +15,7 @@ mod player;
 const MAX_CLIENTS: usize = 10;
 const PLAYER_SPAWN: Vec2 = Vec2::ZERO;
 
+// u64 value corresponds to the recipient/sender id
 type SM = (u64, ServerMessage);
 type CM = (u64, ClientMessage);
 
