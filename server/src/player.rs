@@ -79,16 +79,31 @@ fn despawn_player_system(
 fn player_transform_update_system(
     mut client_msg_events: EventReader<CM>,
     mut server_broadcast_events: EventWriter<Broadcast>,
+    mut query: Query<&mut Transform, With<Player>>,
+    players: Res<Players>,
 ) {
     for client_msg in client_msg_events.iter() {
-        if let (id, ClientMessage::PlayerTransformUpdate { position, rotation }) = client_msg {
+        if let (player_id, ClientMessage::PlayerTransformUpdate { position, rotation }) = client_msg
+        {
+            let player_info = players.0.get(player_id);
+            if player_info.is_none() {
+                continue;
+            }
+
+            let player_info = player_info.unwrap();
+            let mut player_tf = query.get_mut(player_info.entity).unwrap();
+
+            // Update server player info
+            player_tf.translation = position.extend(0.0);
+            player_tf.rotation = Quat::from_rotation_z(*rotation);
+
             server_broadcast_events.send(Broadcast {
                 message: ServerMessage::PlayerTransformUpdate {
-                    id: *id,
+                    id: *player_id,
                     position: *position,
                     rotation: *rotation,
                 },
-                except: Some(*id),
+                except: Some(*player_id),
             });
         }
     }

@@ -18,6 +18,9 @@ pub mod events {
     }
 }
 
+#[derive(Component)]
+struct Orc(u64);
+
 #[derive(Resource)]
 struct OrcAssets {
     idle: Handle<TextureAtlas>,
@@ -48,8 +51,26 @@ fn setup_orc(
     commands.insert_resource(orc_assets);
 }
 
-fn spawn_orc_system(mut commands: Commands, mut events: EventReader<events::SpawnOrc>, orc_assets: Res<OrcAssets>) {
+fn spawn_orc_system(
+    mut commands: Commands,
+    mut events: EventReader<events::SpawnOrc>,
+    orc_assets: Res<OrcAssets>,
+) {
     for event in events.iter() {
-        // TODO:
+        let entity = commands
+            .spawn((
+                SpriteSheetBundle {
+                    texture_atlas: orc_assets.idle.clone(),
+                    transform: Transform {
+                        translation: event.position.extend(0.0),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                Orc(event.id),
+            ))
+            .id();
+
+        // Add entity to orc roster
     }
 }

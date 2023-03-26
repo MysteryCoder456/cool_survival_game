@@ -7,6 +7,7 @@ use std::{
 use bevy::prelude::*;
 use bevy_renet::{renet::ServerEvent, *};
 
+use orc::OrcPlugin;
 use player::{events::*, PlayerPlugin};
 use shared::*;
 
@@ -40,6 +41,7 @@ fn main() {
         }))
         .add_plugin(RenetServerPlugin::default())
         .add_plugin(PlayerPlugin)
+        .add_plugin(OrcPlugin)
         .insert_resource(create_renet_server())
         .insert_resource(Players::default())
         .add_event::<Broadcast>()
