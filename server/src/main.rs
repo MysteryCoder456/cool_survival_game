@@ -4,18 +4,21 @@ use std::{
     time::SystemTime,
 };
 
-use bevy::prelude::*;
+use bevy::{prelude::*, time::FixedTimestep};
 use bevy_renet::{renet::ServerEvent, *};
 
+use components::Velocity;
 use orc::OrcPlugin;
 use player::{events::*, PlayerPlugin};
 use shared::*;
 
+mod components;
 mod orc;
 mod player;
 
 const MAX_CLIENTS: usize = 10;
 const PLAYER_SPAWN: Vec2 = Vec2::ZERO;
+const PHYSICS_TIMESTEP: f64 = 1.0 / 60.0; // 60 FPS
 
 // u64 value corresponds to the recipient/sender id
 type SM = (u64, ServerMessage);
@@ -51,6 +54,11 @@ fn main() {
         .add_system(handle_outgoing_broadcasts)
         .add_system(handle_outgoing_messages)
         .add_system(handle_server_events)
+        .add_system_set(
+            SystemSet::new()
+                .with_run_criteria(FixedTimestep::step(PHYSICS_TIMESTEP))
+                .with_system(velocity_system),
+        )
         .run();
 }
 
@@ -188,5 +196,11 @@ fn handle_server_events(
                 });
             }
         }
+    }
+}
+
+fn velocity_system(time: Res<Time>, mut query: Query<(&mut Transform, &Velocity)>) {
+    for (mut tf, velocity) in query.iter_mut() {
+        tf.translation += velocity.0.extend(0.0) * time.delta_seconds();
     }
 }

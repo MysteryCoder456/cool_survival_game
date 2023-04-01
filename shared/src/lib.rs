@@ -18,7 +18,6 @@ pub enum ServerMessage {
     PlayerLeft {
         id: u64,
     },
-
     PlayerTransformUpdate {
         id: u64,
         position: Vec2,
@@ -29,6 +28,11 @@ pub enum ServerMessage {
         id: u64,
         position: Vec2,
         direction: f32,
+    },
+    OrcTransformUpdate {
+        id: u64,
+        position: Vec2,
+        rotation: f32,
     },
 
     ChatMessage {

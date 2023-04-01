@@ -25,6 +25,9 @@ struct PlayerInfo {
 struct Players(HashMap<u64, PlayerInfo>);
 
 #[derive(Resource, Default)]
+struct Orcs(HashMap<u64, Entity>);
+
+#[derive(Resource, Default)]
 struct CursorWorldPosition(Vec2);
 
 pub struct MainGamePlugin;
@@ -37,6 +40,7 @@ impl Plugin for MainGamePlugin {
             .add_event::<ServerMessage>()
             .add_event::<ClientMessage>()
             .insert_resource(Players::default())
+            .insert_resource(Orcs::default())
             .insert_resource(CursorWorldPosition::default())
             .add_system_set(
                 SystemSet::on_update(GameState::Game)
