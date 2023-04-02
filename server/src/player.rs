@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use bevy::prelude::*;
 
 use crate::{orc::events::*, Broadcast, PlayerInfo, Players, CM};
@@ -130,10 +128,7 @@ fn player_shoot_system(
             let orc_position = player_tf.translation.truncate();
             let direction = *direction;
 
-            let orc_id = SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            let orc_id = rand::random::<u64>();
 
             // Spawn orc in server world
             spawn_orc_events.send(SpawnOrc {

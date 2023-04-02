@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_2;
+
 use bevy::prelude::*;
 
 use super::Orcs;
@@ -63,6 +65,7 @@ fn spawn_orc_system(
                     texture_atlas: orc_assets.idle.clone(),
                     transform: Transform {
                         translation: event.position.extend(0.0),
+                        rotation: Quat::from_rotation_z(event.direction - FRAC_PI_2), // FIXME:
                         ..Default::default()
                     },
                     ..Default::default()

@@ -147,7 +147,6 @@ fn player_shoot_system(
     let player_tf = query.single();
     let diff = cursor_pos.0 - player_tf.translation.truncate();
     let direction = diff.y.atan2(diff.x);
-    dbg!(direction);
 
     events.send(ClientMessage::Shoot { direction });
 }
