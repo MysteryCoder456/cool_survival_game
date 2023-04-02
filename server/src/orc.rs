@@ -13,7 +13,7 @@ pub mod events {
     }
 }
 
-const ORC_SPEED: f32 = 50.0;
+const ORC_SPEED: f32 = 6000.0;
 
 #[derive(Component)]
 struct Orc(u64);
@@ -23,8 +23,8 @@ pub struct OrcPlugin;
 impl Plugin for OrcPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<events::SpawnOrc>()
-            .add_system(spawn_orc_system);
-        //.add_system(orc_transform_update_system);
+            .add_system(spawn_orc_system)
+            .add_system(orc_transform_update_system);
     }
 }
 
@@ -41,17 +41,16 @@ fn spawn_orc_system(mut commands: Commands, mut events: EventReader<events::Spaw
             },
             Orc(event.id),
             Velocity(Vec2::new(
-                event.direction.cos() * ORC_SPEED,
                 event.direction.sin() * ORC_SPEED,
+                event.direction.cos() * ORC_SPEED,
             )),
         ));
     }
 }
 
-// FIXME: this causes some network errors on clientside
 fn orc_transform_update_system(
     mut events: EventWriter<Broadcast>,
-    query: Query<(&Transform, &Orc)>,
+    query: Query<(&Transform, &Orc), Changed<Transform>>,
 ) {
     let broadcasts = query.iter().map(|(orc_tf, orc)| Broadcast {
         message: ServerMessage::OrcTransformUpdate {
