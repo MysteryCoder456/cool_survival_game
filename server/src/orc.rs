@@ -40,10 +40,7 @@ fn spawn_orc_system(mut commands: Commands, mut events: EventReader<events::Spaw
                 ..Default::default()
             },
             Orc(event.id),
-            Velocity(Vec2::new(
-                event.direction.sin() * ORC_SPEED,
-                event.direction.cos() * ORC_SPEED,
-            )),
+            Velocity(Vec2::from_angle(event.direction) * ORC_SPEED),
         ));
     }
 }

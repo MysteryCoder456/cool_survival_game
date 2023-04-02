@@ -137,7 +137,7 @@ fn camera_follow_system(
 fn player_shoot_system(
     mut events: EventWriter<ClientMessage>,
     mouse: Res<Input<MouseButton>>,
-    mouse_pos: Res<CursorWorldPosition>,
+    cursor_pos: Res<CursorWorldPosition>,
     query: Query<&Transform, With<Player>>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
@@ -145,7 +145,9 @@ fn player_shoot_system(
     }
 
     let player_tf = query.single();
-    let direction = player_tf.translation.truncate().angle_between(mouse_pos.0);
+    let diff = cursor_pos.0 - player_tf.translation.truncate();
+    let direction = diff.y.atan2(diff.x);
+    dbg!(direction);
 
     events.send(ClientMessage::Shoot { direction });
 }
