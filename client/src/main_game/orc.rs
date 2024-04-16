@@ -65,7 +65,6 @@ fn spawn_orc_system(
                     texture_atlas: orc_assets.idle.clone(),
                     transform: Transform {
                         translation: event.position.extend(0.0),
-                        rotation: Quat::from_rotation_z(event.direction - FRAC_PI_2), // FIXME:
                         ..Default::default()
                     },
                     ..Default::default()
@@ -100,8 +99,10 @@ fn orc_transform_update_system(
 
             if let Ok(mut orc_tf) = query.get_mut(*entity) {
                 // Mutate entity's transform
+                // FIXME: understand quaternions
                 orc_tf.translation = position.extend(0.0);
                 orc_tf.rotation = Quat::from_rotation_z(*rotation);
+                dbg!(rotation, rotation * 3.141592);
             }
         }
     }
